@@ -76,12 +76,9 @@ class WanInference:
             "--save_file", str(abs_output_path),
             "--size", self.config.get("video_size", "1280*704"),
             "--frame_num", str(final_frame_num),
-            "--sample_solver", self.config.get("sample_solver", "unipc"),
             "--sample_steps", str(self.config.get("sample_steps", 50)),
             "--sample_guide_scale", str(self.config.get("cfg_scale", 7.5)),
-            "--offload_model", "True",
-            "--convert_model_dtype",
-            "--t5_cpu"
+            "--convert_model_dtype"
         ]
 
         # Add prompt if provided
