@@ -122,6 +122,7 @@ class WanWorker:
         group_id = task.get("group_id", "unknown")
         photo_storage_path = task["photo_storage_path"]
         prompt = task.get("prompt")
+        frame_num = task.get("frame_num")  # Optional: frame number override from API
 
         log_task_start(self.logger, item_id, group_id)
 
@@ -155,12 +156,12 @@ class WanWorker:
             # Step 3: Run inference
             log_step(self.logger, 3, "Running Wan2.2 inference...")
             self.logger.info(f"Prompt: {prompt if prompt else '(default)'}")
-            # self.logger.info(f"Video size: {video_size}")
+            self.logger.info(f"Frame num: {frame_num if frame_num else '(default: 121)'}")
             self.inference.run(
-                input_image_path=str(temp_input),  # processed_path -> temp_input
+                input_image_path=str(temp_input),
                 output_video_path=str(temp_output),
-                prompt=prompt
-                # video_size=video_size  # 주석처리
+                prompt=prompt,
+                frame_num=frame_num  # Pass frame_num from API (None = use default 121)
             )
             self.logger.info(f"Inference complete: {temp_output}")
 
