@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import signal
+import threading
 import yaml
 from pathlib import Path
 from typing import Dict, Any
@@ -68,6 +69,10 @@ class WanWorker:
         # Shutdown flag
         self.shutdown_requested = False
 
+        # Heartbeat control
+        self.heartbeat_active = False
+        self.heartbeat_interval = self.config.get("heartbeat_interval", 120)  # 2 minutes
+
         self.logger.info("="*60)
         self.logger.info(f"Worker initialized: {self.config['worker_id']}")
         self.logger.info(f"Vercel API: {self.config['vercel_api_url']}")
@@ -90,6 +95,19 @@ class WanWorker:
         self.logger.info("Shutdown signal received, finishing current task...")
         self.shutdown_requested = True
 
+    def _heartbeat_loop(self, item_id: str):
+        """Background heartbeat loop to extend task lease"""
+        while self.heartbeat_active:
+            time.sleep(self.heartbeat_interval)
+            if not self.heartbeat_active:
+                break
+            try:
+                success = self.api_client.heartbeat(item_id, extend_seconds=300)
+                if success:
+                    self.logger.info(f"[HEARTBEAT] Lease extended for item {item_id}")
+            except Exception as e:
+                self.logger.warning(f"[HEARTBEAT] Failed: {e}")
+
     def process_task(self, task: Dict[str, Any]) -> bool:
         """
         Process a single task
@@ -100,22 +118,28 @@ class WanWorker:
         Returns:
             True if task completed successfully, False otherwise
         """
-        task_id = task["task_id"]
-        job_id = task.get("job_id", "unknown")
-        input_path = task["input_path"]
-        prompt = task.get("params", {}).get("prompt")
+        item_id = task["item_id"]
+        group_id = task.get("group_id", "unknown")
+        photo_storage_path = task["photo_storage_path"]
+        prompt = task.get("prompt")
 
-        log_task_start(self.logger, task_id, job_id)
+        log_task_start(self.logger, item_id, group_id)
 
         # Define temp file paths
-        input_filename = Path(input_path).name
-        temp_input = Path(self.config["temp_dir"]) / f"{task_id}_input{Path(input_filename).suffix}"
-        temp_output = Path(self.config["temp_dir"]) / f"{task_id}_output.mp4"
+        input_filename = Path(photo_storage_path).name
+        temp_input = Path(self.config["temp_dir"]) / f"{item_id}_input{Path(input_filename).suffix}"
+        temp_output = Path(self.config["temp_dir"]) / f"{item_id}_output.mp4"
+
+        # Start heartbeat thread
+        self.heartbeat_active = True
+        heartbeat_thread = threading.Thread(target=self._heartbeat_loop, args=(item_id,))
+        heartbeat_thread.daemon = True
+        heartbeat_thread.start()
 
         try:
             # Step 1: Get presigned download URL
             log_step(self.logger, 1, "Getting download URL...")
-            presign_data = self.api_client.get_presigned_url(task_id, "download_input")
+            presign_data = self.api_client.get_presigned_download_url(photo_storage_path)
             download_url = presign_data["url"]
 
             # Step 2: Download input image
@@ -142,30 +166,27 @@ class WanWorker:
 
             # Step 4: Get presigned upload URL
             log_step(self.logger, 4, "Getting upload URL...")
-            output_filename = f"{task_id}_output.mp4"
-            presign_data = self.api_client.get_presigned_url(
-                task_id=task_id,
-                url_type="upload_output",
-                filename=output_filename,
-                content_type="video/mp4"
+            presign_data = self.api_client.get_presigned_upload_url(
+                video_item_id=item_id,
+                file_extension="mp4"
             )
             upload_url = presign_data["url"]
-            output_storage_path = presign_data.get("output_path", f"outputs/{output_filename}")
+            video_storage_path = presign_data["storage_path"]
 
             # Step 5: Upload result
             log_step(self.logger, 5, "Uploading result video...")
             upload_file(str(temp_output), upload_url, "video/mp4")
-            self.logger.info(f"Uploaded to: {output_storage_path}")
+            self.logger.info(f"Uploaded to: {video_storage_path}")
 
             # Step 6: Report success
             log_step(self.logger, 6, "Reporting task completion...")
             self.api_client.report_task_result(
-                task_id=task_id,
-                status="done",
-                output_path=output_storage_path
+                item_id=item_id,
+                status="completed",
+                video_storage_path=video_storage_path
             )
 
-            log_task_complete(self.logger, task_id, "SUCCESS")
+            log_task_complete(self.logger, item_id, "SUCCESS")
 
             # Cleanup temp files
             if self.config.get("auto_cleanup_temp", True):
@@ -176,24 +197,29 @@ class WanWorker:
 
         except Exception as e:
             # Report failure
-            log_error(self.logger, f"Task {task_id} failed", e)
+            log_error(self.logger, f"Task {item_id} failed", e)
 
             try:
                 self.api_client.report_task_result(
-                    task_id=task_id,
+                    item_id=item_id,
                     status="failed",
-                    error=str(e)
+                    error_message=str(e)
                 )
             except Exception as report_error:
                 log_error(self.logger, "Failed to report task failure", report_error)
 
-            log_task_complete(self.logger, task_id, "FAILED")
+            log_task_complete(self.logger, item_id, "FAILED")
 
             # Cleanup temp files
             cleanup_file(str(temp_input))
             cleanup_file(str(temp_output))
 
             return False
+
+        finally:
+            # Stop heartbeat thread
+            self.heartbeat_active = False
+            heartbeat_thread.join(timeout=1)
 
     def run(self):
         """Main polling loop"""
@@ -209,7 +235,9 @@ class WanWorker:
             try:
                 # Get next task
                 self.logger.info("[POLLING] Requesting next task...")
-                task = self.api_client.get_next_task()
+                task = self.api_client.get_next_task(
+                    lease_duration_seconds=self.config.get("lease_duration_seconds", 600)
+                )
 
                 if task is None:
                     self.logger.info("[IDLE] No task available")
@@ -219,7 +247,7 @@ class WanWorker:
                     continue
 
                 # Process task
-                self.logger.info(f"[TASK RECEIVED] task_id: {task['task_id']}")
+                self.logger.info(f"[TASK RECEIVED] item_id: {task['item_id']}")
                 self.logger.info("")
                 success = self.process_task(task)
 
