@@ -68,3 +68,7 @@ Wan2.2/Wan2.2-TI2V-5B/
 Wan2.2/inputs/
 Wan2.2/outputs/
 Wan2.2/requirements.noflash.txt
+
+# Worker specific files
+temp/
+logs/

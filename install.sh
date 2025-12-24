@@ -76,14 +76,23 @@ echo "      ✓ Model downloaded to Wan2.2/Wan2.2-TI2V-5B"
 echo ""
 
 # Step 8: Create inputs folder
-echo "[8/8] Creating inputs folder..."
+echo "[8/9] Creating inputs folder..."
 mkdir -p inputs
 echo "      ✓ inputs folder created"
 echo ""
 
+# Return to project root
+cd ..
+
+# Step 9: Install worker dependencies
+echo "[9/9] Installing worker dependencies..."
+pip install -r worker_requirements.txt
+echo "      ✓ Worker dependencies installed"
+echo ""
+
 # Cleanup
 echo "Cleaning up temporary files..."
-rm -f requirements.noflash.txt
+rm -f Wan2.2/requirements.noflash.txt
 echo "      ✓ Cleanup complete"
 echo ""
 
@@ -91,10 +100,11 @@ echo "========================================"
 echo "  Installation Complete!"
 echo "========================================"
 echo ""
-echo "Model location: Wan2.2/Wan2.2-TI2V-5B"
-echo "Inputs folder:  Wan2.2/inputs"
+echo "Model location:      Wan2.2/Wan2.2-TI2V-5B"
+echo "Inputs folder:       Wan2.2/inputs"
+echo "Worker config:       worker/config.yaml"
 echo ""
-echo "To use the model, navigate to the Wan2.2 directory:"
-echo "  cd Wan2.2"
-echo "  python generate.py"
+echo "Next steps:"
+echo "  1. Edit worker/config.yaml with your Vercel API settings"
+echo "  2. Run the worker: bash run_worker.sh"
 echo ""
