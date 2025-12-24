@@ -70,7 +70,7 @@ class WanInference:
             "--ckpt_dir", str(abs_model_path),
             "--image", str(abs_input_path),
             "--save_file", str(abs_output_path),
-            # --size option removed: Wan2.2 automatically uses input image dimensions
+            "--size", self.config.get("video_size", "1280*704"),
             "--frame_num", str(self.config.get("frame_num", 81)),
             "--sample_solver", self.config.get("sample_solver", "unipc"),
             "--sample_steps", str(self.config.get("sample_steps", 30)),
