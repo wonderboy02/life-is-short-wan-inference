@@ -57,14 +57,19 @@ class WanInference:
         # Ensure output directory exists
         Path(output_video_path).parent.mkdir(parents=True, exist_ok=True)
 
+        # Convert paths to absolute paths
+        abs_model_path = Path(self.model_path).resolve()
+        abs_input_path = Path(input_image_path).resolve()
+        abs_output_path = Path(output_video_path).resolve()
+
         # Build command (--size removed: ti2v-5B follows input image aspect ratio)
         cmd = [
             "python",
-            str(self.generate_script),
+            "generate.py",  # Relative path since we use cwd=wan_repo_path
             "--task", self.config.get("task_type", "ti2v-5B"),
-            "--ckpt_dir", str(self.model_path),
-            "--image", input_image_path,
-            "--save_file", output_video_path,
+            "--ckpt_dir", str(abs_model_path),
+            "--image", str(abs_input_path),
+            "--save_file", str(abs_output_path),
             # --size option removed: Wan2.2 automatically uses input image dimensions
             "--frame_num", str(self.config.get("frame_num", 81)),
             "--sample_solver", self.config.get("sample_solver", "unipc"),
@@ -93,8 +98,8 @@ class WanInference:
                 raise Exception(f"Inference failed with code {result.returncode}: {error_msg}")
 
             # Verify output file was created
-            if not Path(output_video_path).exists():
-                raise Exception(f"Output file was not created: {output_video_path}")
+            if not abs_output_path.exists():
+                raise Exception(f"Output file was not created: {abs_output_path}")
 
             return output_video_path
 
