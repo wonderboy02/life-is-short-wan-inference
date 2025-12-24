@@ -1,0 +1,6 @@
+# Worker Dependencies
+# Install with: pip install -r worker_requirements.txt
+
+pyyaml>=6.0
+requests>=2.31.0
+pillow>=10.0.0
