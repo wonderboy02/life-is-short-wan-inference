@@ -74,7 +74,7 @@ class WanInference:
             "--frame_num", str(self.config.get("frame_num", 81)),
             "--sample_solver", self.config.get("sample_solver", "unipc"),
             "--sample_steps", str(self.config.get("sample_steps", 30)),
-            "--cfg_scale", str(self.config.get("cfg_scale", 5.0))
+            "--sample_guide_scale", str(self.config.get("cfg_scale", 5.0))
         ]
 
         # Add prompt if provided
