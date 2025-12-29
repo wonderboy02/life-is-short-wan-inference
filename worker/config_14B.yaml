@@ -11,8 +11,8 @@ worker_id: "gpu-worker-14B-001"
 # Polling settings
 polling_interval: 5  # seconds to wait when no task is available
 api_timeout: 30  # seconds for API requests
-lease_duration_seconds: 1200  # 20 minutes - A14B takes longer than 5B
-heartbeat_interval: 180  # 3 minutes - longer interval for A14B
+lease_duration_seconds: 3600  # 60 minutes (1 hour) - A14B takes longer than 5B
+heartbeat_interval: 120  # 2 minutes - heartbeat interval for A14B
 
 # Paths
 wan_repo_path: "./Wan2.2"
