@@ -100,6 +100,9 @@ def preprocess_image(input_path: str, output_path: str = None,
     # Load image
     image = Image.open(input_path)
 
+    # Apply EXIF orientation if present
+    image = ImageOps.exif_transpose(image) if image else image
+
     # Convert to RGB if needed
     if image.mode != 'RGB':
         image = image.convert('RGB')
@@ -133,5 +136,9 @@ def get_size_for_image(image_path: str) -> str:
         Size string like "1280*704" or "704*1280"
     """
     image = Image.open(image_path)
+
+    # Apply EXIF orientation if present
+    image = ImageOps.exif_transpose(image) if image else image
+
     target_size = get_target_size(image.width, image.height)
     return f"{target_size[0]}*{target_size[1]}"
