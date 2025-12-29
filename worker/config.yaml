@@ -24,8 +24,8 @@ task_type: "ti2v-5B"
 video_size: "1280*704"  # Output video size. Wan2.2 automatically adjusts input image to this size
 frame_num: 121  # 4n+1 (default: 121, can be overridden per task via API)
 sample_solver: "unipc"
-sample_steps: 50
-cfg_scale: 7.5
+sample_steps: 70
+cfg_scale: 7.0
 
 # Retry settings
 max_retries: 3
