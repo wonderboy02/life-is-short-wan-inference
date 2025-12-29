@@ -66,11 +66,14 @@ class WanInference:
         # Determine frame_num (priority: parameter > config > default 121)
         final_frame_num = frame_num if frame_num is not None else self.config.get("frame_num", 121)
 
+        # Get task type for model-specific optimization
+        task_type = self.config.get("task_type", "ti2v-5B")
+
         # Build command
         cmd = [
             "python",
             "generate.py",  # Relative path since we use cwd=wan_repo_path
-            "--task", self.config.get("task_type", "ti2v-5B"),
+            "--task", task_type,
             "--ckpt_dir", str(abs_model_path),
             "--image", str(abs_input_path),
             "--save_file", str(abs_output_path),
@@ -78,8 +81,29 @@ class WanInference:
             "--frame_num", str(final_frame_num),
             "--sample_steps", str(self.config.get("sample_steps", 50)),
             "--sample_guide_scale", str(self.config.get("cfg_scale", 7.5)),
-            "--convert_model_dtype"
         ]
+
+        # Add GPU memory optimization options based on task type
+        # Always use offload for memory safety (prevents OOM)
+        if task_type == "ti2v-5B":
+            # TI2V-5B: Use CPU offload for T5 text encoder (24GB VRAM)
+            cmd.extend([
+                "--offload_model", "True",
+                "--convert_model_dtype",
+                "--t5_cpu"
+            ])
+        elif task_type in ["i2v-A14B", "t2v-A14B"]:
+            # I2V/T2V-A14B: No T5 encoder used (80GB VRAM)
+            cmd.extend([
+                "--offload_model", "True",
+                "--convert_model_dtype"
+            ])
+        else:
+            # Default: use offload and mixed precision for safety
+            cmd.extend([
+                "--offload_model", "True",
+                "--convert_model_dtype"
+            ])
 
         # Add prompt if provided
         if prompt:

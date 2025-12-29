@@ -1,0 +1,36 @@
+# Worker Configuration - I2V-A14B (14B Model)
+# Optimized for high-performance GPU (80GB+ VRAM)
+
+# Vercel API settings
+vercel_api_url: "https://life-is-short-landing.vercel.app/api"
+worker_token: "i39dg0edinw0d98ghjwlekigfhjuwe0dignjwopdi9ghslaiq"
+
+# Worker identification
+worker_id: "gpu-worker-14B-001"
+
+# Polling settings
+polling_interval: 5  # seconds to wait when no task is available
+api_timeout: 30  # seconds for API requests
+lease_duration_seconds: 1200  # 20 minutes - A14B takes longer than 5B
+heartbeat_interval: 180  # 3 minutes - longer interval for A14B
+
+# Paths
+wan_repo_path: "./Wan2.2"
+model_path: "./Wan2.2-I2V-A14B"
+temp_dir: "./temp"
+log_dir: "./logs"
+
+# Inference settings - I2V-A14B optimized for quality
+task_type: "i2v-A14B"
+video_size: "1280*720"  # A14B supports 480P & 720P (720P for quality)
+frame_num: 121  # 4n+1 (default: 121, can be overridden per task via API)
+sample_solver: "unipc"
+sample_steps: 50  # Balanced quality (default for A14B)
+cfg_scale: 7.0
+
+# Retry settings
+max_retries: 3
+retry_delay: 10  # seconds - longer delay for A14B
+
+# Cleanup
+auto_cleanup_temp: true

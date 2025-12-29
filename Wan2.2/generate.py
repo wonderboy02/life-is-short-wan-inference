@@ -12,7 +12,7 @@ import random
 
 import torch
 import torch.distributed as dist
-from PIL import Image
+from PIL import Image, ImageOps
 
 import wan
 from wan.configs import MAX_AREA_CONFIGS, SIZE_CONFIGS, SUPPORTED_SIZES, WAN_CONFIGS
@@ -373,7 +373,10 @@ def generate(args):
     logging.info(f"Input prompt: {args.prompt}")
     img = None
     if args.image is not None:
-        img = Image.open(args.image).convert("RGB")
+        img = Image.open(args.image)
+        # Apply EXIF orientation if present
+        img = ImageOps.exif_transpose(img) if img else img
+        img = img.convert("RGB")
         logging.info(f"Input image: {args.image}")
 
     # prompt extend
