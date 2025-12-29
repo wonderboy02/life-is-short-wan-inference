@@ -48,10 +48,16 @@ echo ""
 
 # Step 4: Install flash_attn with no-build-isolation
 echo "[4/8] Installing flash_attn..."
-echo "      This step may take 10-20 minutes"
-echo "      Using MAX_JOBS=4 to limit CPU/memory usage"
-MAX_JOBS=4 pip install flash-attn --no-build-isolation
-echo "      ✓ flash_attn installed"
+echo "      ⚠️  IMPORTANT: This step takes 10-20 minutes!"
+echo "      You will see compilation progress like [2/73], [3/73], etc."
+echo "      Please be patient and DO NOT interrupt (Ctrl+C)"
+echo ""
+echo "      Using MAX_JOBS=16 for faster compilation"
+echo "      Starting compilation... (grab a coffee ☕)"
+echo ""
+MAX_JOBS=16 pip install flash-attn --no-build-isolation
+echo ""
+echo "      ✓ flash_attn installed successfully!"
 echo ""
 
 # Step 5: Install additional requirements
