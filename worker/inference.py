@@ -117,7 +117,7 @@ class WanInference:
                 cwd=str(self.wan_repo_path),
                 capture_output=True,
                 text=True,
-                timeout=1800  # 30 minutes timeout
+                timeout=3600  # 60 minutes (1 hour) timeout
             )
 
             # Check for errors
